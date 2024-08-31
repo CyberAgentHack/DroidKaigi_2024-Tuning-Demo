@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">Album</string>
+    <string name="label_host">Host</string>
+    <string name="label_id">ID</string>
+    <string name="label_access_code">Access Code</string>
+    <string name="label_setup">Setup</string>
+    <string name="label_launch">Launch</string>
+    <string name="message_failed_check_album">Unable to check the specified album existence.</string>
+    <string name="label_album">Album</string>
+    <string name="label_save">Save this photo</string>
+</resources>
