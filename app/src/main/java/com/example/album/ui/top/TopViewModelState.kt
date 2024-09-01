@@ -1,6 +1,7 @@
 package com.example.album.ui.top
 
 import com.example.album.model.Album
+import com.example.album.model.Event
 
 data class TopViewModelState(
   val album: Album? = null,
@@ -9,6 +10,7 @@ data class TopViewModelState(
   val host: String? = null,
   val id: String? = null,
   val accessCode: String? = null,
+  val eventList: List<Event> = emptyList()
 ) {
 
   companion object {
@@ -29,6 +31,6 @@ data class TopViewModelState(
         accessCode = accessCode!!
       )
     }
-    return TopUiState.Idle
+    return TopUiState.Idle(eventList)
   }
 }

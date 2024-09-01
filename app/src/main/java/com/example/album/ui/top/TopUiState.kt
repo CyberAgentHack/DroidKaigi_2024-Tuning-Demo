@@ -1,9 +1,11 @@
 package com.example.album.ui.top
 
-import com.example.album.model.Album
+import com.example.album.model.Event
 
 sealed interface TopUiState {
-  data object Idle : TopUiState
+  data class Idle(
+    val eventList: List<Event>
+  ) : TopUiState
 
   data object Checking : TopUiState
 

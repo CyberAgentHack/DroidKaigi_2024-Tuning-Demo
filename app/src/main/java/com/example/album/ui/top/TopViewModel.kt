@@ -3,6 +3,8 @@ package com.example.album.ui.top
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.album.infra.repository.AlbumRepository
+import com.example.album.infra.repository.EventRepository
+import com.example.album.model.Event
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -16,7 +18,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class TopViewModel @Inject constructor(
-  private val albumRepository: AlbumRepository
+  private val albumRepository: AlbumRepository,
+  private val eventRepository: EventRepository
 ) : ViewModel() {
 
   private val viewModelState: MutableStateFlow<TopViewModelState> = MutableStateFlow(TopViewModelState.INITIAL)
@@ -28,6 +31,22 @@ class TopViewModel @Inject constructor(
       SharingStarted.Eagerly,
       viewModelState.value.toUiState()
     )
+
+  fun loadSavedEvent() {
+    viewModelScope.launch {
+      runCatching {
+        eventRepository.loadEvent()
+      }
+        .onSuccess { result ->
+          viewModelState.update {
+            it.copy(
+              eventList = result
+            )
+          }
+        }
+        .onFailure { Timber.e(it) }
+    }
+  }
 
   fun checkAlbumExistence(
     host: String,
@@ -64,6 +83,25 @@ class TopViewModel @Inject constructor(
             )
           }
         }
+    }
+  }
+
+  fun saveEvent() {
+    val host = viewModelState.value.host ?: return
+    val id = viewModelState.value.id ?: return
+    val name = viewModelState.value.album?.name ?: return
+    val accessCode = viewModelState.value.accessCode ?: return
+    val event = Event(
+      host = host,
+      id = id,
+      name = name,
+      accessCode = accessCode
+    )
+
+    viewModelScope.launch {
+      runCatching { eventRepository.saveEvent(event) }
+        .onSuccess { Timber.d("Success to save") }
+        .onFailure { Timber.e(it) }
     }
   }
 

@@ -1,14 +1,18 @@
 package com.example.album.ui.top
 
 import android.net.Uri
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -30,8 +34,11 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.album.R
+import com.example.album.model.Event
 import com.example.album.ui.theme.AlbumTheme
 import kotlinx.coroutines.launch
 
@@ -53,6 +60,7 @@ fun TopScreen(
 
   if (state is TopUiState.Checked) {
     val checkedState = state as TopUiState.Checked
+    viewModel.saveEvent()
     viewModel.clearCheckState()
     navigateToAlbum?.invoke(
       Uri.encode(checkedState.host),
@@ -61,11 +69,22 @@ fun TopScreen(
     )
   }
 
+  LifecycleEventEffect(event = Lifecycle.Event.ON_START) {
+    viewModel.loadSavedEvent()
+  }
+
   TopScaffold(
     state = state,
     onShowSnackbar = onShowScankbar,
     onClickLaunch = { host, id, accessCode ->
       viewModel.checkAlbumExistence(host, id, accessCode)
+    },
+    onClickSavedEvent = { event ->
+      navigateToAlbum?.invoke(
+        Uri.encode(event.host),
+        Uri.encode(event.id),
+        Uri.encode(event.accessCode)
+      )
     },
     snackbarHostState = snackbarHostState
   )
@@ -77,6 +96,7 @@ private fun TopScaffold(
   state: TopUiState,
   snackbarHostState: SnackbarHostState,
   onClickLaunch: ((String, String, String) -> Unit)? = null,
+  onClickSavedEvent: ((Event) -> Unit)? = null,
   onShowSnackbar: ((String) -> Unit)? = null
 ) {
   Scaffold(
@@ -91,9 +111,12 @@ private fun TopScaffold(
     },
     snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
   ) { innerPadding ->
+    val eventList = (state as? TopUiState.Idle)?.eventList ?: emptyList()
     TopContent(
       modifier = Modifier.padding(innerPadding),
-      onClickLaunch = onClickLaunch
+      eventList = eventList,
+      onClickLaunch = onClickLaunch,
+      onClickSavedEvent = onClickSavedEvent
     )
 
     when (state) {
@@ -108,7 +131,9 @@ private fun TopScaffold(
 @Composable
 private fun TopContent(
   modifier: Modifier = Modifier,
-  onClickLaunch: ((String, String, String) -> Unit)? = null
+  eventList: List<Event>,
+  onClickLaunch: ((String, String, String) -> Unit)? = null,
+  onClickSavedEvent: ((Event) -> Unit)? = null
 ) {
   // Default values for demonstration
   val host = remember {
@@ -173,7 +198,54 @@ private fun TopContent(
           text = stringResource(R.string.label_launch)
         )
       }
+      if (eventList.isNotEmpty()) {
+        Spacer(modifier = Modifier.height(24.dp))
+        HorizontalDivider(modifier = Modifier.fillMaxWidth())
+        LazyColumn(
+          modifier = Modifier.fillMaxWidth()
+        ) {
+          items(
+            items = eventList,
+            key = {
+              it.host + it.id
+            }
+          ) {
+            SavedEvent(
+              event = it,
+              onClickSavedEvent = onClickSavedEvent
+            )
+          }
+        }
+      }
     }
+  }
+}
+
+@Composable
+private fun SavedEvent(
+  event: Event,
+  onClickSavedEvent: ((Event) -> Unit)? = null
+) {
+  Column(
+    modifier = Modifier
+      .fillMaxWidth()
+      .clickable { onClickSavedEvent?.invoke(event) }
+  ) {
+    Spacer(modifier = Modifier.height(8.dp))
+    Text(
+      text = event.host,
+      fontSize = 12.sp
+    )
+    Text(
+      text = event.id,
+      fontSize = 12.sp
+    )
+    Text(
+      text = event.name,
+      fontSize = 12.sp
+    )
+    Spacer(modifier = Modifier.height(8.dp))
+    HorizontalDivider(modifier = Modifier.fillMaxWidth())
   }
 }
 
@@ -182,7 +254,7 @@ private fun TopContent(
 private fun PreviewTopContent() {
   AlbumTheme {
     TopScaffold(
-      state = TopUiState.Idle,
+      state = TopUiState.Idle(eventList = emptyList()),
       snackbarHostState = SnackbarHostState()
     )
   }
