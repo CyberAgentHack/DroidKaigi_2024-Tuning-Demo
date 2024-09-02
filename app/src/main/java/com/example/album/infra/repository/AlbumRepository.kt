@@ -13,7 +13,7 @@ interface AlbumRepository {
     accessCode: String
   ) : Album
 
-  suspend fun savePhoto(
+  fun savePhoto(
     context: Context,
     bitmap: Bitmap,
     shotDateTime: Instant,

@@ -83,30 +83,28 @@ class AlbumViewModel @Inject constructor(
     shotDateTime: Instant,
     fileName: String
   ) {
-    viewModelScope.launch {
-      runCatching {
-        albumRepository.savePhoto(
-          context = context,
-          bitmap = bitmap,
-          shotDateTime = shotDateTime,
-          fileName = fileName
-        )
-      }
-        .onSuccess {
-          viewModelState.update {
-            it.copy(
-              noticeMessage = "Succeed to save file: $fileName"
-            )
-          }
-        }
-        .onFailure { e ->
-          Timber.e(e)
-          viewModelState.update {
-            it.copy(
-              noticeMessage = "Failed to save file: $fileName"
-            )
-          }
-        }
+    runCatching {
+      albumRepository.savePhoto(
+        context = context,
+        bitmap = bitmap,
+        shotDateTime = shotDateTime,
+        fileName = fileName
+      )
     }
+      .onSuccess {
+        viewModelState.update {
+          it.copy(
+            noticeMessage = "Succeed to save file: $fileName"
+          )
+        }
+      }
+      .onFailure { e ->
+        Timber.e(e)
+        viewModelState.update {
+          it.copy(
+            noticeMessage = "Failed to save file: $fileName"
+          )
+        }
+      }
   }
 }

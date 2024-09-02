@@ -61,6 +61,11 @@ android {
   }
 }
 
+composeCompiler {
+  reportsDestination = layout.buildDirectory.dir("compose_compiler")
+  metricsDestination = layout.buildDirectory.dir("compose_compiler")
+}
+
 dependencies {
   val composeBom = platform(libs.androidx.compose.bom)
   implementation(composeBom)

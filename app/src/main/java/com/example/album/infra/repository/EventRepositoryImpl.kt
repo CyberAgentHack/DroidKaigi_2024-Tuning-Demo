@@ -8,7 +8,6 @@ import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
-@Singleton
 class EventRepositoryImpl @Inject constructor(
   private val eventDatabase: PhotospeedwayDatabase
 ) : EventRepository {

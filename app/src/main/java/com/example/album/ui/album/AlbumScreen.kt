@@ -138,16 +138,13 @@ private fun AlbumContent(
           .fillMaxSize()
           .padding(16.dp)
       ) {
-        items(
-          items = photoList,
-          key = {
-            it.imageUrl + it.shotDateTime
+        item {
+          for (photo in photoList) {
+            PhotoItem(
+              photo = photo,
+              onClickSave = onClickSave
+            )
           }
-        ) {
-          Image(
-            photo = it,
-            onClickSave = onClickSave
-          )
         }
       }
     }
@@ -155,7 +152,7 @@ private fun AlbumContent(
 }
 
 @Composable
-private fun Image(
+private fun PhotoItem(
   photo: Photo,
   onClickSave: ((Bitmap, Instant, String) -> Unit)? = null
 ) {
