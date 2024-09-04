@@ -1,6 +1,8 @@
 package com.example.album.ui.album
 
 import android.graphics.Bitmap
+import android.net.Uri
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -46,7 +48,8 @@ import kotlinx.datetime.Instant
 
 @Composable
 fun AlbumScreen(
-  viewModel: AlbumViewModel = hiltViewModel()
+  viewModel: AlbumViewModel = hiltViewModel(),
+  navigateToDetail: ((String, String, String, String) -> Unit)? = null
 ) {
   val state by viewModel.uiState.collectAsStateWithLifecycle()
   val coroutineScope = rememberCoroutineScope()
@@ -67,6 +70,14 @@ fun AlbumScreen(
     state = state,
     snackbarHostState = snackbarHostState,
     onShowSnackbar = onShowScankbar,
+    onClickImage = {
+      navigateToDetail?.invoke(
+        Uri.encode(state.host),
+        Uri.encode(state.id),
+        Uri.encode(state.accessCode),
+        Uri.encode(it)
+      )
+    },
     onClickSave = { bitmap, shotDateTime, fileName ->
       viewModel.savePhoto(bitmap, shotDateTime, fileName)
     },
@@ -80,6 +91,7 @@ private fun AlbumScaffold(
   state: AlbumUiState,
   snackbarHostState: SnackbarHostState,
   onShowSnackbar: ((String) -> Unit)? = null,
+  onClickImage: ((String) -> Unit)? = null,
   onClickSave: ((Bitmap, Instant, String) -> Unit)? = null,
   onRefresh: (() -> Unit)? = null
 ) {
@@ -100,6 +112,7 @@ private fun AlbumScaffold(
         modifier = Modifier.padding(innerPadding),
         photoList = state.album.photoList,
         isReloading = state.isReloading,
+        onClickImage = onClickImage,
         onClickSave = onClickSave,
         onRefresh = onRefresh
       )
@@ -124,6 +137,7 @@ private fun AlbumContent(
   modifier: Modifier = Modifier,
   photoList: List<Photo>,
   isReloading: Boolean,
+  onClickImage: ((String) -> Unit)? = null,
   onClickSave: ((Bitmap, Instant, String) -> Unit)? = null,
   onRefresh: (() -> Unit)? = null
 ) {
@@ -142,6 +156,7 @@ private fun AlbumContent(
           for (photo in photoList) {
             PhotoItem(
               photo = photo,
+              onClickImage = onClickImage,
               onClickSave = onClickSave
             )
           }
@@ -154,6 +169,7 @@ private fun AlbumContent(
 @Composable
 private fun PhotoItem(
   photo: Photo,
+  onClickImage: ((String) -> Unit)? = null,
   onClickSave: ((Bitmap, Instant, String) -> Unit)? = null
 ) {
   val bitmap = remember { mutableStateOf<Bitmap?>(null) }
@@ -161,7 +177,9 @@ private fun PhotoItem(
     horizontalAlignment = Alignment.CenterHorizontally
   ) {
     SubcomposeAsyncImage(
-      modifier = Modifier.fillMaxWidth(),
+      modifier = Modifier
+        .fillMaxWidth()
+        .clickable { onClickImage?.invoke(photo.imageUrl) },
       model = photo.imageUrl,
       contentDescription = null,
       onSuccess = {
@@ -200,7 +218,11 @@ private fun PhotoItem(
 private fun PreviewAlbumContent() {
   AlbumTheme {
     AlbumScaffold(
-      state = AlbumUiState.Empty,
+      state = AlbumUiState.Empty(
+        host = "https://example.com",
+        id = "1",
+        accessCode = "access_code"
+      ),
       snackbarHostState = SnackbarHostState()
     )
   }
