@@ -11,6 +11,7 @@ import com.example.album.ui.album.AlbumUiState
 import com.example.album.ui.album.AlbumViewModelState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -53,29 +54,32 @@ class DetailViewModel @Inject constructor(
       )
     }
     viewModelScope.launch {
-      val photo = runCatching {
-        albumRepository.loadAlbum(host, id, accessCode).photoList.find { it.imageUrl == imageUrl }
-      }.getOrNull()
-      val exifInfo = runCatching {
-        exifInfoRepository.getExifInfo(host, imageUrl)
-      }.getOrNull()
-
-      if (photo == null || exifInfo == null) {
-        viewModelState.update {
-          it.copy(
-            isError = true
-          )
+      runCatching {
+        val photo = async {
+          albumRepository.loadAlbum(host, id, accessCode).photoList.find { it.imageUrl == imageUrl }
         }
-        return@launch
+        val exifInfo = async {
+          exifInfoRepository.getExifInfo(host, imageUrl)
+        }
+        return@runCatching photo.await() to exifInfo.await()
       }
-
-      viewModelState.update {
-        it.copy(
-          photo = photo,
-          exifInfo = exifInfo,
-          isLoading = false
-        )
-      }
+        .onSuccess { (photo, exifInfo) ->
+          viewModelState.update {
+            it.copy(
+              photo = photo,
+              exifInfo = exifInfo,
+              isLoading = false
+            )
+          }
+        }
+        .onFailure { e ->
+          Timber.e(e)
+          viewModelState.update {
+            it.copy(
+              noticeMessage = "Failed to load image: $imageUrl"
+            )
+          }
+        }
     }
   }
 
@@ -93,28 +97,30 @@ class DetailViewModel @Inject constructor(
     shotDateTime: Instant,
     fileName: String
   ) {
-    runCatching {
-      albumRepository.savePhoto(
-        context = context,
-        bitmap = bitmap,
-        shotDateTime = shotDateTime,
-        fileName = fileName
-      )
+    viewModelScope.launch {
+      runCatching {
+        albumRepository.savePhoto(
+          context = context,
+          bitmap = bitmap,
+          shotDateTime = shotDateTime,
+          fileName = fileName
+        )
+      }
+        .onSuccess {
+          viewModelState.update {
+            it.copy(
+              noticeMessage = "Succeed to save file: $fileName"
+            )
+          }
+        }
+        .onFailure { e ->
+          Timber.e(e)
+          viewModelState.update {
+            it.copy(
+              noticeMessage = "Failed to save file: $fileName"
+            )
+          }
+        }
     }
-      .onSuccess {
-        viewModelState.update {
-          it.copy(
-            noticeMessage = "Succeed to save file: $fileName"
-          )
-        }
-      }
-      .onFailure { e ->
-        Timber.e(e)
-        viewModelState.update {
-          it.copy(
-            noticeMessage = "Failed to save file: $fileName"
-          )
-        }
-      }
   }
 }
