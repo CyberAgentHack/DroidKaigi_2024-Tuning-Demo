@@ -43,7 +43,10 @@ class AlbumViewModel @Inject constructor(
   fun loadAlbum(isReloading: Boolean = false) {
     viewModelState.update {
       it.copy(
-        isReloading = isReloading
+        isReloading = isReloading,
+        host = host,
+        id = id,
+        accessCode = accessCode
       )
     }
     viewModelScope.launch {

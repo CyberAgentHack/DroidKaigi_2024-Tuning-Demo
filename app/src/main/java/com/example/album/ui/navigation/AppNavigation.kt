@@ -32,8 +32,20 @@ internal sealed interface AppNavigation {
   }
 
   data object Detail : AppNavigation {
-    const val URL_ARG = "url"
+    const val HOST_ARG = "host"
+    const val ID_ARG = "id"
+    const val ACCESS_CODE_ARG = "access_code"
+    const val URL_ARG = "image_url"
 
-    override val route: String = "detail"
+    override val route: String = "detail/{$HOST_ARG}/{$ID_ARG}/{$ACCESS_CODE_ARG}/{$URL_ARG}"
+
+    fun createRoute(
+    host: String,
+    id: String,
+    accessCode: String,
+    imageUrl: String
+    ): String {
+      return "detail/$host/$id/$accessCode/$imageUrl"
+    }
   }
 }

@@ -8,6 +8,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.album.ui.album.AlbumScreen
+import com.example.album.ui.detail.DetailScreen
 import com.example.album.ui.top.TopScreen
 
 @Composable
@@ -43,16 +44,32 @@ fun AppNavHost(modifier: Modifier = Modifier) {
         navArgument(AppNavigation.Album.ACCESS_CODE_ARG) { type = NavType.StringType }
       )
     ) {
-      AlbumScreen()
+      AlbumScreen(
+        navigateToDetail = { host, id, accessCode, imageUrl ->
+          navController.navigate(
+            AppNavigation.Detail.createRoute(
+              host = host,
+              id = id,
+              accessCode = accessCode,
+              imageUrl = imageUrl
+            )
+          ) {
+            launchSingleTop = true
+          }
+        }
+      )
     }
 
     composable(
       route = AppNavigation.Detail.route,
       arguments = listOf(
+        navArgument(AppNavigation.Detail.HOST_ARG) { type = NavType.StringType },
+        navArgument(AppNavigation.Detail.ID_ARG) { type = NavType.StringType },
+        navArgument(AppNavigation.Detail.ACCESS_CODE_ARG) { type = NavType.StringType },
         navArgument(AppNavigation.Detail.URL_ARG) { type = NavType.StringType }
       )
     ) {
-
+      DetailScreen()
     }
   }
 }
