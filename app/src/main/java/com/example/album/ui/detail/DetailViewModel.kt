@@ -1,4 +1,4 @@
-package com.example.album.ui.album
+package com.example.album.ui.detail
 
 import android.content.Context
 import android.graphics.Bitmap
@@ -6,8 +6,12 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.album.infra.repository.AlbumRepository
+import com.example.album.infra.repository.ExifInfoRepository
+import com.example.album.ui.album.AlbumUiState
+import com.example.album.ui.album.AlbumViewModelState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -20,8 +24,9 @@ import timber.log.Timber
 import javax.inject.Inject
 
 @HiltViewModel
-class AlbumViewModel @Inject constructor(
+class DetailViewModel @Inject constructor(
   private val albumRepository: AlbumRepository,
+  private val exifInfoRepository: ExifInfoRepository,
   savedStateHandle: SavedStateHandle,
   @ApplicationContext private val context: Context
 ) : ViewModel() {
@@ -29,35 +34,41 @@ class AlbumViewModel @Inject constructor(
   private val host: String = checkNotNull(savedStateHandle["host"])
   private val id: String = checkNotNull(savedStateHandle["id"])
   private val accessCode: String = checkNotNull(savedStateHandle["access_code"])
+  private val imageUrl: String = checkNotNull(savedStateHandle["image_url"])
 
-  private val viewModelState: MutableStateFlow<AlbumViewModelState> = MutableStateFlow(AlbumViewModelState.INITIAL)
+  private val viewModelState: MutableStateFlow<DetailViewModelState> = MutableStateFlow(DetailViewModelState.INITIAL)
 
-  val uiState: StateFlow<AlbumUiState> = viewModelState
-    .map(AlbumViewModelState::toUiState)
+  val uiState: StateFlow<DetailUiState> = viewModelState
+    .map(DetailViewModelState::toUiState)
     .stateIn(
       viewModelScope,
       SharingStarted.Eagerly,
       viewModelState.value.toUiState()
     )
 
-  fun loadAlbum(isReloading: Boolean = false) {
+  fun load() {
     viewModelState.update {
       it.copy(
-        isReloading = isReloading,
-        host = host,
-        id = id,
-        accessCode = accessCode
+        isLoading = true,
+        isError = false
       )
     }
     viewModelScope.launch {
       runCatching {
-        albumRepository.loadAlbum(host, id, accessCode)
+        val photo = async {
+          albumRepository.loadAlbum(host, id, accessCode).photoList.find { it.imageUrl == imageUrl }
+        }
+        val exifInfo = async {
+          exifInfoRepository.getExifInfo(host, imageUrl)
+        }
+        return@runCatching photo.await() to exifInfo.await()
       }
-        .onSuccess { result ->
+        .onSuccess { (photo, exifInfo) ->
           viewModelState.update {
             it.copy(
-              album = result,
-              isReloading = false
+              photo = photo,
+              exifInfo = exifInfo,
+              isLoading = false
             )
           }
         }
@@ -65,7 +76,7 @@ class AlbumViewModel @Inject constructor(
           Timber.e(e)
           viewModelState.update {
             it.copy(
-              isError = true
+              noticeMessage = "Failed to load image: $imageUrl"
             )
           }
         }

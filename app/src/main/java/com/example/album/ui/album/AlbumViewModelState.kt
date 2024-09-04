@@ -6,7 +6,10 @@ data class AlbumViewModelState(
   val album: Album? = null,
   val noticeMessage: String? = null,
   val isError: Boolean = false,
-  val isReloading: Boolean = false
+  val isReloading: Boolean = false,
+  val host: String = "",
+  val id: String = "",
+  val accessCode: String = ""
 ) {
 
   companion object {
@@ -15,15 +18,26 @@ data class AlbumViewModelState(
 
   fun toUiState(): AlbumUiState {
     if (isError) {
-      return AlbumUiState.Error
+      return AlbumUiState.Error(
+        host = host,
+        id = id,
+        accessCode = accessCode
+      )
     }
     if (album != null) {
       return AlbumUiState.Success(
+        host = host,
+        id = id,
+        accessCode = accessCode,
         album = album,
         noticeMessage = noticeMessage,
         isReloading = isReloading
       )
     }
-    return AlbumUiState.Empty
+    return AlbumUiState.Empty(
+      host = host,
+      id = id,
+      accessCode = accessCode
+    )
   }
 }
