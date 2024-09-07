@@ -7,6 +7,10 @@ data class Album(
   val photoList: List<Photo>
 )
 
+data class Favorite(
+  val photoList: List<Photo>
+)
+
 data class Photo(
   val imageUrl: String,
   val shotDateTime: Instant,

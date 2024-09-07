@@ -8,4 +8,5 @@
     <string name="message_failed_check_album">Unable to check the specified album existence.</string>
     <string name="label_album">Album</string>
     <string name="label_save">Save this photo</string>
+    <string name="label_favorite">Favorite</string>
 </resources>

@@ -13,3 +13,7 @@ fun Instant.formatDateTime(): String {
   val localDateTime = this.toLocalDateTimeInZone()
   return "${localDateTime.year}年${localDateTime.monthNumber}月${localDateTime.dayOfMonth}日 ${localDateTime.formatHourMinuteSecond()}"
 }
+
+fun Instant.formatISO8601(): String {
+  return this.toString()
+}

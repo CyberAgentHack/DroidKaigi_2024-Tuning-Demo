@@ -9,6 +9,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.album.ui.album.AlbumScreen
 import com.example.album.ui.detail.DetailScreen
+import com.example.album.ui.favorite.FavoriteScreen
 import com.example.album.ui.top.TopScreen
 
 @Composable
@@ -56,6 +57,17 @@ fun AppNavHost(modifier: Modifier = Modifier) {
           ) {
             launchSingleTop = true
           }
+        },
+        navigateToFavorite = { host, id, accessCode ->
+          navController.navigate(
+            AppNavigation.Favorite.createRoute(
+              host = host,
+              id = id,
+              accessCode = accessCode
+            )
+          ) {
+            launchSingleTop = true
+          }
         }
       )
     }
@@ -70,6 +82,30 @@ fun AppNavHost(modifier: Modifier = Modifier) {
       )
     ) {
       DetailScreen()
+    }
+
+    composable(
+      route = AppNavigation.Favorite.route,
+      arguments = listOf(
+        navArgument(AppNavigation.Favorite.HOST_ARG) { type = NavType.StringType },
+        navArgument(AppNavigation.Favorite.ID_ARG) { type = NavType.StringType },
+        navArgument(AppNavigation.Favorite.ACCESS_CODE_ARG) { type = NavType.StringType }
+      )
+    ) {
+      FavoriteScreen(
+        navigateToDetail = { host, id, accessCode, imageUrl ->
+          navController.navigate(
+            AppNavigation.Detail.createRoute(
+              host = host,
+              id = id,
+              accessCode = accessCode,
+              imageUrl = imageUrl
+            )
+          ) {
+            launchSingleTop = true
+          }
+        }
+      )
     }
   }
 }

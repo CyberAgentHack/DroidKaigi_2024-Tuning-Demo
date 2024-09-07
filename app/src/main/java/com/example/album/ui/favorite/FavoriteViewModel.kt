@@ -1,4 +1,4 @@
-package com.example.album.ui.album
+package com.example.album.ui.favorite
 
 import android.content.Context
 import android.graphics.Bitmap
@@ -6,7 +6,6 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.album.infra.repository.AlbumRepository
-import com.example.album.model.Photo
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,7 +20,7 @@ import timber.log.Timber
 import javax.inject.Inject
 
 @HiltViewModel
-class AlbumViewModel @Inject constructor(
+class FavoriteViewModel @Inject constructor(
   private val albumRepository: AlbumRepository,
   savedStateHandle: SavedStateHandle,
   @ApplicationContext private val context: Context
@@ -31,17 +30,17 @@ class AlbumViewModel @Inject constructor(
   private val id: String = checkNotNull(savedStateHandle["id"])
   private val accessCode: String = checkNotNull(savedStateHandle["access_code"])
 
-  private val viewModelState: MutableStateFlow<AlbumViewModelState> = MutableStateFlow(AlbumViewModelState.INITIAL)
+  private val viewModelState: MutableStateFlow<FavoriteViewModelState> = MutableStateFlow(FavoriteViewModelState.INITIAL)
 
-  val uiState: StateFlow<AlbumUiState> = viewModelState
-    .map(AlbumViewModelState::toUiState)
+  val uiState: StateFlow<FavoriteUiState> = viewModelState
+    .map(FavoriteViewModelState::toUiState)
     .stateIn(
       viewModelScope,
       SharingStarted.Eagerly,
       viewModelState.value.toUiState()
     )
 
-  fun loadAlbum(isReloading: Boolean = false) {
+  fun loadFavorite(isReloading: Boolean = false) {
     viewModelState.update {
       it.copy(
         isReloading = isReloading,
@@ -52,12 +51,12 @@ class AlbumViewModel @Inject constructor(
     }
     viewModelScope.launch {
       runCatching {
-        albumRepository.loadAlbum(host, id, accessCode)
+        albumRepository.loadFavorite(host, id, accessCode)
       }
         .onSuccess { result ->
           viewModelState.update {
             it.copy(
-              album = result,
+              favorite = result,
               isReloading = false
             )
           }
@@ -79,44 +78,6 @@ class AlbumViewModel @Inject constructor(
         isError = false,
         noticeMessage = null
       )
-    }
-  }
-
-  fun favorite(
-    photo: Photo
-  ) {
-    viewModelScope.launch {
-      runCatching {
-        albumRepository.addFavorite(
-          host = host,
-          id = id,
-          accessCode = accessCode,
-          photo = photo
-        )
-      }
-        .onSuccess { result ->
-          if (result) {
-            viewModelState.update {
-              it.copy(
-                noticeMessage = "Succeeded to add favorite: ${photo.fileName}."
-              )
-            }
-          } else {
-            viewModelState.update {
-              it.copy(
-                noticeMessage = "Failed to add favorite: ${photo.fileName}. This photo may have already been added."
-              )
-            }
-          }
-        }
-        .onFailure { e ->
-          Timber.e(e)
-          viewModelState.update {
-            it.copy(
-              noticeMessage = "Failed to add favorite: ${photo.fileName}. This photo may have already been added."
-            )
-          }
-        }
     }
   }
 

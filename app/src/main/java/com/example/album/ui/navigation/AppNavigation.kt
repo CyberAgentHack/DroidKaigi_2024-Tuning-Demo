@@ -48,4 +48,20 @@ internal sealed interface AppNavigation {
       return "detail/$host/$id/$accessCode/$imageUrl"
     }
   }
+
+  data object Favorite : AppNavigation {
+    const val HOST_ARG = "host"
+    const val ID_ARG = "id"
+    const val ACCESS_CODE_ARG = "access_code"
+
+    override val route: String = "favorite/{$HOST_ARG}/{$ID_ARG}/{$ACCESS_CODE_ARG}"
+
+    fun createRoute(
+      host: String,
+      id: String,
+      accessCode: String
+    ): String {
+      return "favorite/$host/$id/$accessCode"
+    }
+  }
 }

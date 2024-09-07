@@ -1,11 +1,9 @@
-package com.example.album.ui.album
+package com.example.album.ui.favorite
 
 import android.graphics.Bitmap
 import android.net.Uri
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -13,12 +11,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -35,7 +29,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -51,14 +44,12 @@ import com.example.album.misc.formatDateTime
 import com.example.album.model.Photo
 import com.example.album.ui.theme.AlbumTheme
 import kotlinx.coroutines.launch
-import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 
 @Composable
-fun AlbumScreen(
-  viewModel: AlbumViewModel = hiltViewModel(),
-  navigateToDetail: ((String, String, String, String) -> Unit)? = null,
-  navigateToFavorite: ((String, String, String) -> Unit)? = null
+fun FavoriteScreen(
+  viewModel: FavoriteViewModel = hiltViewModel(),
+  navigateToDetail: ((String, String, String, String) -> Unit)? = null
 ) {
   val state by viewModel.uiState.collectAsStateWithLifecycle()
   val coroutineScope = rememberCoroutineScope()
@@ -72,10 +63,10 @@ fun AlbumScreen(
   }
 
   LifecycleEventEffect(event = Lifecycle.Event.ON_START) {
-    viewModel.loadAlbum()
+    viewModel.loadFavorite()
   }
 
-  AlbumScaffold(
+  FavoriteScaffold(
     state = state,
     snackbarHostState = snackbarHostState,
     onShowSnackbar = onShowScankbar,
@@ -90,31 +81,19 @@ fun AlbumScreen(
     onClickSave = { bitmap, shotDateTime, fileName ->
       viewModel.savePhoto(bitmap, shotDateTime, fileName)
     },
-    onClickFavorite = { photo ->
-      viewModel.favorite(photo)
-    },
-    onRefresh = { viewModel.loadAlbum(isReloading = true) },
-    onClickFavoriteMenu = {
-      navigateToFavorite?.invoke(
-        Uri.encode(state.host),
-        Uri.encode(state.id),
-        Uri.encode(state.accessCode)
-      )
-    }
+    onRefresh = { viewModel.loadFavorite(isReloading = true) }
   )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun AlbumScaffold(
-  state: AlbumUiState,
+private fun FavoriteScaffold(
+  state: FavoriteUiState,
   snackbarHostState: SnackbarHostState,
   onShowSnackbar: ((String) -> Unit)? = null,
   onClickImage: ((String) -> Unit)? = null,
   onClickSave: ((Bitmap, Instant, String) -> Unit)? = null,
-  onClickFavorite: ((Photo) -> Unit)? = null,
-  onRefresh: (() -> Unit)? = null,
-  onClickFavoriteMenu: (() -> Unit)? = null
+  onRefresh: (() -> Unit)? = null
 ) {
   Scaffold(
     topBar = {
@@ -123,29 +102,18 @@ private fun AlbumScaffold(
           containerColor = MaterialTheme.colorScheme.primaryContainer,
           titleContentColor = MaterialTheme.colorScheme.primary
         ),
-        title = { Text(stringResource(R.string.label_album)) },
-        actions = {
-          IconButton(
-            onClick = { onClickFavoriteMenu?.invoke() }
-          ) {
-            Icon(
-              imageVector = Icons.Default.Star,
-              contentDescription = "Navigate to favorite"
-            )
-          }
-        }
+        title = { Text(stringResource(R.string.label_favorite)) },
       )
     },
     snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
   ) { innerPadding ->
-    if (state is AlbumUiState.Success) {
-      AlbumContent(
+    if (state is FavoriteUiState.Success) {
+      FavoriteContent(
         modifier = Modifier.padding(innerPadding),
-        photoList = state.album.photoList,
+        photoList = state.favorite.photoList,
         isReloading = state.isReloading,
         onClickImage = onClickImage,
         onClickSave = onClickSave,
-        onClickFavorite = onClickFavorite,
         onRefresh = onRefresh
       )
 
@@ -155,7 +123,7 @@ private fun AlbumScaffold(
     }
 
     when (state) {
-      is AlbumUiState.Error -> {
+      is FavoriteUiState.Error -> {
         onShowSnackbar?.invoke("Failed to load album")
       }
       else -> {}
@@ -165,13 +133,12 @@ private fun AlbumScaffold(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun AlbumContent(
+private fun FavoriteContent(
   modifier: Modifier = Modifier,
   photoList: List<Photo>,
   isReloading: Boolean,
   onClickImage: ((String) -> Unit)? = null,
   onClickSave: ((Bitmap, Instant, String) -> Unit)? = null,
-  onClickFavorite: ((Photo) -> Unit)? = null,
   onRefresh: (() -> Unit)? = null
 ) {
   Surface {
@@ -194,8 +161,7 @@ private fun AlbumContent(
           Image(
             photo = it,
             onClickImage = onClickImage,
-            onClickSave = onClickSave,
-            onClickFavorite = onClickFavorite
+            onClickSave = onClickSave
           )
         }
       }
@@ -207,12 +173,11 @@ private fun AlbumContent(
 private fun Image(
   photo: Photo,
   onClickImage: ((String) -> Unit)? = null,
-  onClickSave: ((Bitmap, Instant, String) -> Unit)? = null,
-  onClickFavorite: ((Photo) -> Unit)? = null
+  onClickSave: ((Bitmap, Instant, String) -> Unit)? = null
 ) {
   val bitmap = remember { mutableStateOf<Bitmap?>(null) }
   Column(
-    horizontalAlignment = Alignment.Start
+    horizontalAlignment = Alignment.CenterHorizontally
   ) {
     SubcomposeAsyncImage(
       modifier = Modifier
@@ -225,30 +190,14 @@ private fun Image(
       }
     )
     Spacer(modifier = Modifier.height(4.dp))
-    Row(
-      modifier = Modifier.fillMaxWidth()
-    ) {
-      Column(
-        modifier = Modifier.weight(1f)
-      ) {
-        Text(
-          text = photo.fileName,
-          fontSize = 14.sp
-        )
-        Text(
-          text = photo.shotDateTime.formatDateTime(),
-          fontSize = 14.sp
-        )
-      }
-      IconButton(
-        onClick = { onClickFavorite?.invoke(photo) }
-      ) {
-        Icon(
-          imageVector = Icons.Default.Star,
-          contentDescription = "Favorite this image"
-        )
-      }
-    }
+    Text(
+      text = photo.fileName,
+      fontSize = 14.sp
+    )
+    Text(
+      text = photo.shotDateTime.formatDateTime(),
+      fontSize = 14.sp
+    )
     Spacer(modifier = Modifier.height(4.dp))
     Button(
       onClick = {
@@ -269,33 +218,15 @@ private fun Image(
 
 @Preview
 @Composable
-private fun PreviewAlbumContent() {
+private fun PreviewFavoriteContent() {
   AlbumTheme {
-    AlbumScaffold(
-      state = AlbumUiState.Empty(
+    FavoriteScaffold(
+      state = FavoriteUiState.Empty(
         host = "https://example.com",
         id = "1",
         accessCode = "access_code"
       ),
       snackbarHostState = SnackbarHostState()
     )
-  }
-}
-
-@Preview
-@Composable
-private fun PreviewImage() {
-  val photo = Photo(
-    imageUrl = "https://e10dokup.pecori.jp/demo/images/DSC07994s.jpg",
-    fileName = "DSC12345.JPG",
-    shotDateTime = Clock.System.now()
-  )
-
-  AlbumTheme {
-    Surface {
-      Image(
-        photo = photo
-      )
-    }
   }
 }
